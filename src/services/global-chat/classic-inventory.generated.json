@@ -3,11 +3,11 @@
   "inventoryReviewed": true,
   "parityReady": true,
   "summary": {
-    "totalRoutes": 719,
-    "mappedRoutes": 563,
+    "totalRoutes": 720,
+    "mappedRoutes": 564,
     "exemptRoutes": 156,
     "reviewRequiredRoutes": 0,
-    "clientApiReferences": 416,
+    "clientApiReferences": 417,
     "unmatchedClientApiReferences": 0,
     "settingsSections": 22,
     "navigationSurfaces": 10
