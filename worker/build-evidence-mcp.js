@@ -70,10 +70,10 @@ async function record(intent) {
 
 const server = new McpServer(
   { name: 'usernode-visual-intent', version: '1.0.0' },
-  { instructions: 'After implementing a change, declare its reviewer-facing visual evidence intent. This records claims only; Homeroom later explores base/head and deterministically replays the UI flow.' }
+  { instructions: 'After implementing a change, declare its reviewer-facing visual evidence intent only for a visible state you reached in the running local app with representative test data. Report a missing fixture or inaccessible state instead of inventing a claim. This records claims only; Homeroom later explores base/head and deterministically replays the UI flow.' }
 );
 server.registerTool('record_visual_evidence_intent', {
-  description: 'Declare 1-3 concrete UI claims and flows while implementation context is fresh, or impact=none with a specific rationale for a truly non-visual change. Call once after implementation and before finishing the build turn.',
+  description: 'Declare 1-3 concrete UI claims and flows that you reached in the running local app with representative test data, or impact=none with a specific rationale for a truly non-visual change. A visible state needing a server fault or background job requires a repeatable staging fixture; report a blocker rather than submitting a guessed flow. Call once after implementation and before finishing the build turn.',
   inputSchema: intentSchema,
   annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
 }, async (intent) => {

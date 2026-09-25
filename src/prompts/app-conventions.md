@@ -2983,7 +2983,7 @@ Behaviour:
   platform shell (the app iframe); standalone pages register
   harmlessly.
 
-## In-loop browser (build turns) — optional, encouraged
+## In-loop browser (build turns)
 
 On a **build** turn (not scout/sync) both hosted Claude Code and hosted Codex
 have a headless browser
@@ -2994,12 +2994,12 @@ catching a blank page, a JS crash on load, a broken layout, or a failing
 API call that source-reading alone would miss — and fix it before
 committing.
 
-It is **optional and encouraged, never a gate.** Reach for it when a
-change is user-visible and a visual check is genuinely informative; skip
-it for backend-only / refactor / docs work where rendering tells you
-nothing. Turns that don't use it behave exactly as before, and Chromium
-only launches on the first browser tool call, so there's no cost when
-it's unused. Scout and sync turns have no browser at all.
+Use it before declaring a `ui` or `motion` visual evidence story. A story
+must describe a checkpoint you actually reached in the local app, including
+the state the evidence runner will need to reproduce. For backend-only,
+refactor, or docs work, rendering may tell you nothing and the browser is
+optional. Chromium only launches on the first browser tool call. Scout and
+sync turns have no browser at all.
 
 ### Launch contract
 
@@ -3029,14 +3029,17 @@ locally inside the worker the same way a staging container does:
   possible. Do not change auth code or seed passwords solely for this check.
 - Keep it tight (a couple of launch→check→fix cycles, a minute or two).
   **If the app won't boot** — no local Postgres, a missing required
-  secret, a crash on start — don't fight it: note that you skipped the
-  visual check and commit anyway. The in-loop browser must never block
-  or fail the turn.
+  secret, a crash on start — report the blocker. You can still finish
+  non-visual work, but do not submit an unverified visible story. If the
+  claim needs data or a fault that the local app cannot reproduce, add a
+  representative fixture exercised by the normal test route. Do not add a
+  screenshot-only route or invent a state just to get a capture.
 
-This is an agent-facing quality aid. Before finishing a user-visible build,
-call `record_visual_evidence_intent`; the exact-revision paired replay creates
-captures for people to review, and the "Test this change" action remains a separate
-manual aid.
+This is an agent-facing quality gate for the claimed head state. Before
+finishing a user-visible build, call `record_visual_evidence_intent` only for
+a flow you actually reached. The exact-revision paired replay still verifies
+both sides independently, and the "Test this change" action remains a
+separate manual aid.
 
 ## Writing user-facing copy: no em dashes
 

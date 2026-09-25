@@ -90,6 +90,53 @@ test('replay plans reject arbitrary script, xpath, root focus and unsupported ke
   assert.equal(evidence.safeParseReplayPlan(key).ok, false);
 });
 
+test('invalid replay actions report safe, actionable fields rather than an opaque union error', () => {
+  const candidate = plan();
+  candidate.stories[0].replay.before.actions = [
+    { id: 'open-menu', stage: 'menu', type: 'click', locator: { by: 'role', role: 'button' } },
+    { id: 'open-help', stage: 'Open Help', type: 'click', target: { by: 'testId', value: 'help' } },
+    { id: 'go', stage: 'go', type: 'tap', target: { by: 'testId', value: 'help' } },
+  ];
+  const result = evidence.safeParseReplayPlan(candidate);
+  assert.equal(result.ok, false);
+  assert.deepEqual(result.errors[0], {
+    path: ['stories', '0', 'replay', 'before', 'actions', '0', 'target'],
+    message: 'Required',
+  });
+  assert.match(result.errors[1].message, /Unexpected field/);
+  assert.deepEqual(result.errors[2], {
+    path: ['stories', '0', 'replay', 'before', 'actions', '1', 'stage'],
+    message: 'Use a lowercase slug with letters, digits, hyphens or underscores',
+  });
+  assert.deepEqual(result.errors[3].path, ['stories', '0', 'replay', 'before', 'actions', '2', 'type']);
+  assert.match(result.errors[3].message, /Expected one of: navigate, click/);
+  assert.doesNotMatch(JSON.stringify(result.errors), /Invalid input|locator/);
+});
+
+test('hosted replay submission receives the same field-level action error', () => {
+  const replay = structuredClone(plan().stories[0].replay);
+  delete replay.before.actions[0].target;
+  assert.throws(() => evidence.replayPlanFromIntent(intent(), [
+    { id: 'invite-suggestions', replay },
+  ]), (error) => {
+    assert.equal(error.code, 'invalid_visual_evidence');
+    assert.deepEqual(error.issues[0], {
+      path: ['0', 'replay', 'before', 'actions', '0', 'target'],
+      message: 'Required',
+    });
+    return true;
+  });
+});
+
+test('validation diagnostics do not copy unrecognized submitted field names', () => {
+  const candidate = plan();
+  candidate.stories[0].replay.before.actions[0]['private-token'] = 'secret-value';
+  const result = evidence.safeParseReplayPlan(candidate);
+  assert.equal(result.ok, false);
+  assert.match(result.errors[0].message, /Unexpected field/);
+  assert.doesNotMatch(JSON.stringify(result.errors), /private-token|secret-value/);
+});
+
 test('waits, action counts, pointer ratios and scroll distances are bounded', () => {
   const wait = plan();
   wait.stories[0].replay.after.actions.push({
@@ -237,7 +284,7 @@ test('hosted replays reject missing, duplicate, unknown, or altered story metada
   ]), /duplicated/);
   assert.throws(() => evidence.replayPlanFromIntent(accepted, [
     { id: 'invite-suggestions', claim: 'A changed claim', replay },
-  ]), /Unrecognized key/);
+  ]), /Unexpected field/);
   const changedAnimation = structuredClone(replay);
   changedAnimation.checkpoint.animation = 'none';
   assert.throws(() => evidence.replayPlanFromIntent(accepted, [

@@ -129,6 +129,9 @@ test('the evidence prompt asks for a replay plan and leaves visual judgement to 
   assert.match(agent.promptFor({ repair: true }), /rejected plan and the exact replay failure/i);
   assert.match(agent.promptFor({ repair: true }), /BOTH exact\s+revisions/i);
   assert.match(agent.replayPlanGuide(), /No arbitrary JavaScript/);
+  assert.match(agent.replayPlanGuide(), /id:"open-menu", stage:"menu"/);
+  assert.match(agent.replayPlanGuide(), /"type":"click",\s*"target"/);
+  assert.match(agent.replayPlanGuide(), /read the returned field paths/i);
   assert.match(agent.replayPlanGuide(), /exactly one\s+entry for every accepted story id/i);
   assert.match(agent.replayPlanGuide(), /Do not copy those fields yourself/);
   assert.match(agent.replayPlanGuide(), /Every interaction target and each checkpoint focus must\s+identify exactly one visible element/);

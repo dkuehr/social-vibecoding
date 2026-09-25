@@ -356,13 +356,63 @@ const replayPlanSchema = z.object({
   });
 });
 
-function normalizeZodIssues(error) {
-  return error.issues.map((issue) => ({ path: issue.path.map(String), message: issue.message }));
+function samePath(left, right) {
+  return left.length === right.length && left.every((part, index) => String(part) === String(right[index]));
+}
+
+function valueAtPath(value, path) {
+  return path.reduce((current, part) => current == null ? undefined : current[part], value);
+}
+
+function normalizeZodIssues(error, value) {
+  const flattened = [];
+  const visit = (issue) => {
+    if (issue.code === 'invalid_union' && Array.isArray(issue.unionErrors)) {
+      const variants = issue.unionErrors.map((branch) => branch.issues);
+      const submitted = valueAtPath(value, issue.path);
+      if (submitted == null || typeof submitted !== 'object' || Array.isArray(submitted)) {
+        flattened.push({ path: issue.path,
+          message: submitted == null ? 'Required' : 'Expected an action or locator object' });
+        return;
+      }
+      const discriminant = ['type', 'by'].find((key) => variants.some((branch) => branch.some((candidate) =>
+        candidate.code === 'invalid_literal' && samePath(candidate.path, [...issue.path, key]))));
+      if (discriminant) {
+        const allowed = discriminant === 'type' ? ACTION_TYPES : LOCATOR_KINDS;
+        if (!allowed.includes(submitted[discriminant])) {
+          flattened.push({ path: [...issue.path, discriminant],
+            message: `Expected one of: ${allowed.join(', ')}` });
+          return;
+        }
+        const matching = variants.find((branch) => !branch.some((entry) =>
+          entry.code === 'invalid_literal' && samePath(entry.path, [...issue.path, discriminant])));
+        if (matching) {
+          matching.forEach(visit);
+          return;
+        }
+      }
+      flattened.push({ path: issue.path, message: 'Expected a supported action or locator object' });
+      return;
+    }
+    // Zod includes the submitted field names in this message. The planner
+    // needs the expected field path, while diagnostics must not retain raw
+    // tool arguments (including arbitrary object keys).
+    flattened.push({ path: issue.path,
+      message: issue.code === 'unrecognized_keys'
+        ? 'Unexpected field(s); use only fields in the replay contract'
+        : issue.code === 'invalid_string' && issue.validation === 'regex'
+          ? 'Use a lowercase slug with letters, digits, hyphens or underscores'
+        : issue.message });
+  };
+  error.issues.forEach(visit);
+  return flattened.slice(0, 20).map((issue) => ({
+    path: issue.path.map(String), message: issue.message,
+  }));
 }
 
 function parseWith(schema, value) {
   const parsed = schema.safeParse(value);
-  if (!parsed.success) throw new VisualEvidenceValidationError(normalizeZodIssues(parsed.error));
+  if (!parsed.success) throw new VisualEvidenceValidationError(normalizeZodIssues(parsed.error, value));
   return parsed.data;
 }
 

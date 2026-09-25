@@ -110,8 +110,13 @@ server.registerTool('evidence_set_request_failure', {
 });
 
 server.registerTool('evidence_run_plan', {
-  description: 'Submit exactly one executable replay per accepted story id, with {replays:[{id,replay}]}. Do not repeat or change the frozen claim, persona, viewport, or intent fields. Homeroom validates and acknowledges the plan immediately, then replays it twice in the background. Acceptance is not a replay verdict. Finish your turn after acceptance; the platform starts a correction turn if needed.',
-  inputSchema: { replays: z.array(z.object({ id: z.string(), replay: z.record(z.unknown()) }).strict()).min(1).max(3) },
+  description: 'Submit exactly one {id,replay} per accepted story id. replay contains before:{startPath,actions}, after:{startPath,actions}, checkpoint:{id,label,focus:{before,after},assertions:{before,after},animation}. Each action needs lowercase slug id and stage plus a supported type and its exact fields. Example click: {"id":"open-menu","stage":"menu","type":"click","target":{"by":"role","role":"button","name":"Menu"}}. Read validation field paths and correct them before retrying. Do not change frozen intent. Acceptance is not a replay verdict; finish after acceptance.',
+  // Keep the bridge permissive inside replay. The platform's one versioned
+  // contract validates action variants and returns field-level failures;
+  // duplicate worker-side validation would hide those errors from run
+  // diagnostics and can drift from the platform image during a rollout.
+  inputSchema: { replays: z.array(z.object({ id: z.string(), replay: z.record(z.unknown())
+    .describe('Object with before and after sides plus a checkpoint. Each action has id, stage, type, and type-specific fields.') }).strict()).min(1).max(3) },
   annotations,
 }, async ({ replays }) => {
   try { return resultContent((await request('/run-plan', { method: 'POST', body: { replays } })).result); }

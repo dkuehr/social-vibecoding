@@ -97,6 +97,25 @@ test('pending or failed v2 evidence shows claims and status but no media or lega
   assert.equal(AppView._workshopVisuals({ after: { png: id('a') } }, evidence({ state: 'failed' })), null);
 });
 
+test('a failed preview can be manually retried after its automatic repair is spent', () => {
+  const html = AppView.visualEvidenceHtml(evidence({
+    state: 'failed', repairAvailable: false, repairCount: 1,
+    failureCode: 'evidence_run_interrupted',
+  }), { sessionId: 42 });
+  assert.match(html, /onclick="AppView\.rerunVisualEvidence\(42, this\)">Retry visual change preview<\/button>/);
+
+  const noStory = AppView.visualEvidenceHtml(evidence({
+    state: 'failed', repairAvailable: false, claims: [],
+    failureCode: 'missing_evidence_replay',
+  }), { sessionId: 42 });
+  assert.doesNotMatch(noStory, /Retry visual change preview/);
+
+  const stale = AppView.visualEvidenceHtml(evidence({
+    state: 'stale', repairAvailable: false,
+  }), { sessionId: 42 });
+  assert.doesNotMatch(stale, /Retry visual change preview/);
+});
+
 test('the workshop summary uses protected focus URLs only after verification', () => {
   const summary = AppView._workshopVisuals(null, evidence());
   assert.equal(summary.protected, true);

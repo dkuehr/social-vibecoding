@@ -17954,9 +17954,14 @@ const AppView = {
       // never started. The rerun route already accepts a 'planned' run (it
       // reruns the same head), and a stuck run is precisely the case where
       // a reader needs a way to kick it.
-      const retryable = (state === 'failed'
-          && (evidence.repairAvailable === true || evidence.failureCode === 'evidence_stopped'))
-        || AppView._evidenceNotStarted(evidence);
+      // repairAvailable is the budget for an automatic planner repair, not
+      // permission to start a fresh run. A failed run may have used that
+      // repair already (or stopped during deployment), while the owner can
+      // still choose to rerun it. Do not offer a blind rerun when there is no
+      // declared story for the planner to replay.
+      const retryable = claims.length > 0 && (
+        (state === 'failed' && evidence.failureCode !== 'visual_evidence_intent_conflict')
+        || AppView._evidenceNotStarted(evidence));
       const retry = retryable && Number.isInteger(sessionId) && sessionId > 0
         ? `<button type="button" class="text-xs font-medium text-violet-700 dark:text-violet-400" onclick="AppView.rerunVisualEvidence(${sessionId}, this)">Retry visual change preview</button>`
         : '';

@@ -35,7 +35,10 @@ replay. The platform attaches the accepted version, impact, rationale, claim,
 persona, viewports, and intent unchanged. Do not copy those fields yourself.
 
 replay.before and replay.after each contain { startPath, actions }. Paths are
-relative in-app paths. Each action has a unique id, a stage, and one supported
+relative in-app paths. Each action is a JSON object, not a browser-tool call
+or a prose step. Its id and stage must be lowercase slugs using letters,
+digits, hyphens, or underscores (for example, id:"open-menu", stage:"menu").
+An action has a unique id, a stage, and one supported
 type: navigate(path), click(target), fill(target,value), press(target?,key),
 select(target,value), check(target), uncheck(target), hover(target),
 drag(from,to), clickPoint(surface,xRatio,yRatio),
@@ -43,6 +46,11 @@ dragPoints(surface,from:{xRatio,yRatio},to:{xRatio,yRatio}),
 scrollIntoView(target), scrollBy(x,y), or waitFor(exactly one of target, text,
 path, quietNetwork; optional timeoutMs up to 10000; target also accepts
 state:"visible" or state:"hidden", default visible).
+For example, a click is {"id":"open-menu","stage":"menu","type":"click",
+"target":{"by":"role","role":"button","name":"Menu"}}. Use those exact
+field names; do not add browser-tool names or an extra locator/description
+field. If evidence_run_plan rejects a replay, read the returned field paths
+and correct the named fields before trying again.
 An accepted error-state story may declare intent.controlledFailurePath. Only
 for that exact /api/ GET, call evidence_set_request_failure({path,enabled:true})
 during exploration before the action that triggers the request; inspect the
