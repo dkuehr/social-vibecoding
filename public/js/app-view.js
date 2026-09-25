@@ -17872,6 +17872,13 @@ const AppView = {
     return reason || 'Nothing has picked this preview up yet.';
   },
 
+  _evidenceRetryable(evidence) {
+    const e = evidence || {};
+    if (!Array.isArray(e.claims) || e.claims.length === 0) return false;
+    return (e.state === 'failed' && e.failureCode !== 'visual_evidence_intent_conflict')
+      || AppView._evidenceNotStarted(e);
+  },
+
   // The words for each evidence state — a label and a sentence — shared by
   // the verified/pending card below and the change page's strip.
   _evidenceStateCopy(evidence) {
@@ -17915,6 +17922,7 @@ const AppView = {
       state,
       verified: state === 'verified',
       notStarted,
+      retryable: AppView._evidenceRetryable(evidence),
       label: state === 'verified' ? 'Captured' : copy[0],
       sentence: notStarted
         ? `Visual change preview: ${detail.charAt(0).toLowerCase()}${detail.slice(1)}. Nothing has been captured for this commit yet.`
@@ -17959,9 +17967,7 @@ const AppView = {
       // repair already (or stopped during deployment), while the owner can
       // still choose to rerun it. Do not offer a blind rerun when there is no
       // declared story for the planner to replay.
-      const retryable = claims.length > 0 && (
-        (state === 'failed' && evidence.failureCode !== 'visual_evidence_intent_conflict')
-        || AppView._evidenceNotStarted(evidence));
+      const retryable = AppView._evidenceRetryable(evidence);
       const retry = retryable && Number.isInteger(sessionId) && sessionId > 0
         ? `<button type="button" class="text-xs font-medium text-violet-700 dark:text-violet-400" onclick="AppView.rerunVisualEvidence(${sessionId}, this)">Retry visual change preview</button>`
         : '';

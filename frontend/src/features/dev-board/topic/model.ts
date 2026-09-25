@@ -441,6 +441,7 @@ export interface TopicBody {
      * spin, and it keeps the panel so its reason and retry control show.
      */
     notStarted: boolean;
+    retryable: boolean;
     label: string;
     sentence: string;
     claims: string[];

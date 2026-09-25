@@ -876,12 +876,18 @@ function IssueAssociations({
 }
 
 /** The evidence run's state, as one strip: a failed or waived run explains itself. */
-function EvidenceStrip({ e }: { e: NonNullable<TopicBody['evidence']> }): ReactNode {
+function EvidenceStrip({ e, sessionId }: { e: NonNullable<TopicBody['evidence']>; sessionId?: number | null }): ReactNode {
   const red = e.state === 'failed' || e.state === 'stale' || e.state === 'cancelled';
   return (
     <div className="dev-topic-evidence" data-evidence-state={e.state}>
       <span className={`dev-badge ${red ? 'bg-red-500/10 text-red-700 dark:text-red-400' : 'bg-zinc-500/10 text-zinc-600 dark:text-zinc-400'}`}>{e.label}</span>
       <span className="dev-topic-evidence-text">{e.sentence}</span>
+      {e.retryable && sessionId ? (
+        <button type="button" className="text-xs font-medium text-violet-700 dark:text-violet-400"
+          onClick={(event) => (window as any).AppView?.rerunVisualEvidence(sessionId, event.currentTarget)}>
+          Retry visual change preview
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -927,7 +933,7 @@ function BeforeAfter({ body }: { body: TopicBody }): ReactNode {
       </p>
     );
   }
-  return <EvidenceStrip e={ev} />;
+  return <EvidenceStrip e={ev} sessionId={body.changeId} />;
 }
 
 /**
