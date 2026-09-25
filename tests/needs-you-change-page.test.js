@@ -239,12 +239,12 @@ test('the picture: verified evidence keeps its card, a run under way spins, and 
   assert.match(building, /<p class="dev-topic-hero-evidence" data-evidence-state="exploring"><span class="dc-status-spinner-arc" aria-hidden="true"><\/span><span>Building before\/after photos<\/span><\/p>/);
   assert.ok(!building.includes('data-visual-evidence="1"'), 'no panel for a run still going');
   const failed = render(av, { ...PR, visualEvidence: { state: 'failed', failureReason: 'The dialog never opened.', repairAvailable: false, claims: [claim], artifacts: [] } }).html;
-  assert.match(failed, /<div class="dev-topic-evidence" data-evidence-state="failed"><span class="dev-badge bg-red-500\/10 text-red-700 dark:text-red-400">Visual change preview failed<\/span>/);
-  assert.match(failed, /Retry visual change preview<\/button>/);
+  assert.match(failed, /<div class="dev-topic-evidence flex-wrap" data-evidence-state="failed"><span class="dev-badge bg-red-500\/10 text-red-700 dark:text-red-400">Visual change preview failed<\/span>/);
+  assert.match(failed, /aria-label="Retry visual change preview"[^>]*>Retry preview<\/button>/);
   const withoutClaim = render(av, { ...PR, visualEvidence: { state: 'failed', claims: [], artifacts: [] } }).html;
-  assert.doesNotMatch(withoutClaim, /Retry visual change preview<\/button>/);
+  assert.doesNotMatch(withoutClaim, /aria-label="Retry visual change preview"/);
   const conflicting = render(av, { ...PR, visualEvidence: { state: 'failed', failureCode: 'visual_evidence_intent_conflict', claims: [claim], artifacts: [] } }).html;
-  assert.doesNotMatch(conflicting, /Retry visual change preview<\/button>/);
+  assert.doesNotMatch(conflicting, /aria-label="Retry visual change preview"/);
   const verified = render(av, { ...PR, visualEvidence: { state: 'verified', claims: [claim], artifacts: [], baseSha: 'a'.repeat(40), headSha: 'b'.repeat(40) } }).html;
   assert.match(verified, /<div class="dev-topic-visuals" data-visuals-scope="1"><div class="usn-visuals-body">/);
   assert.ok(!verified.includes('dev-topic-hero-evidence'));

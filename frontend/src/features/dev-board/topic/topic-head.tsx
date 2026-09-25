@@ -879,13 +879,14 @@ function IssueAssociations({
 function EvidenceStrip({ e, sessionId }: { e: NonNullable<TopicBody['evidence']>; sessionId?: number | null }): ReactNode {
   const red = e.state === 'failed' || e.state === 'stale' || e.state === 'cancelled';
   return (
-    <div className="dev-topic-evidence" data-evidence-state={e.state}>
+    <div className="dev-topic-evidence flex-wrap" data-evidence-state={e.state}>
       <span className={`dev-badge ${red ? 'bg-red-500/10 text-red-700 dark:text-red-400' : 'bg-zinc-500/10 text-zinc-600 dark:text-zinc-400'}`}>{e.label}</span>
       <span className="dev-topic-evidence-text">{e.sentence}</span>
       {e.retryable && sessionId ? (
-        <button type="button" className="text-xs font-medium text-violet-700 dark:text-violet-400"
+        <button type="button" aria-label="Retry visual change preview"
+          className="ml-auto shrink-0 whitespace-nowrap text-xs font-medium text-violet-700 dark:text-violet-400"
           onClick={(event) => (window as any).AppView?.rerunVisualEvidence(sessionId, event.currentTarget)}>
-          Retry visual change preview
+          Retry preview
         </button>
       ) : null}
     </div>
