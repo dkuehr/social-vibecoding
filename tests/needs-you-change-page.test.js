@@ -233,7 +233,7 @@ test('before review the page is the same shape: the change’s own status in the
 });
 
 test('the picture: verified evidence keeps its card, a run under way spins, and a failed claim can be retried from the change page', () => {
-  const av = context();
+  const av = context({ id: PR.user_id, username: PR.username });
   const claim = { claim: 'The preview waits for sign-in', viewports: ['desktop'], steps: ['Open a preview'] };
   const building = render(av, { ...PR, visualEvidence: { state: 'exploring', claims: [claim], artifacts: [] } }).html;
   assert.match(building, /<p class="dev-topic-hero-evidence" data-evidence-state="exploring"><span class="dc-status-spinner-arc" aria-hidden="true"><\/span><span>Building before\/after photos<\/span><\/p>/);
@@ -241,6 +241,12 @@ test('the picture: verified evidence keeps its card, a run under way spins, and 
   const failed = render(av, { ...PR, visualEvidence: { state: 'failed', failureReason: 'The dialog never opened.', repairAvailable: false, claims: [claim], artifacts: [] } }).html;
   assert.match(failed, /<div class="dev-topic-evidence flex-wrap" data-evidence-state="failed"><span class="dev-badge bg-red-500\/10 text-red-700 dark:text-red-400">Visual change preview failed<\/span>/);
   assert.match(failed, /aria-label="Retry visual change preview"[^>]*>Retry preview<\/button>/);
+  const reader = context({ id: 42, username: 'Reader' });
+  const readerFailed = render(reader, { ...PR, visualEvidence: { state: 'failed', claims: [claim], artifacts: [] } }).html;
+  assert.doesNotMatch(readerFailed, /aria-label="Retry visual change preview"/);
+  reader.appData.can_manage = true;
+  const managerFailed = render(reader, { ...PR, visualEvidence: { state: 'failed', claims: [claim], artifacts: [] } }).html;
+  assert.match(managerFailed, /aria-label="Retry visual change preview"/);
   const withoutClaim = render(av, { ...PR, visualEvidence: { state: 'failed', claims: [], artifacts: [] } }).html;
   assert.doesNotMatch(withoutClaim, /aria-label="Retry visual change preview"/);
   const conflicting = render(av, { ...PR, visualEvidence: { state: 'failed', failureCode: 'visual_evidence_intent_conflict', claims: [claim], artifacts: [] } }).html;
@@ -326,7 +332,7 @@ test('a fresh planned run is in progress, and says so in the words the state use
 });
 
 test('a planned run untouched past five minutes has not started: no spinner, the reason, and the retry', () => {
-  const av = context();
+  const av = context({ id: PR.user_id, username: PR.username });
   const evidence = {
     state: 'planned',
     updatedAt: ago(IDLE + 60 * 1000),

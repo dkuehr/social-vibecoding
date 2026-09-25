@@ -101,8 +101,14 @@ test('a failed preview can be manually retried after its automatic repair is spe
   const html = AppView.visualEvidenceHtml(evidence({
     state: 'failed', repairAvailable: false, repairCount: 1,
     failureCode: 'evidence_run_interrupted',
-  }), { sessionId: 42 });
+  }), { sessionId: 42, canManage: true });
   assert.match(html, /onclick="AppView\.rerunVisualEvidence\(42, this\)">Retry visual change preview<\/button>/);
+
+  const readerHtml = AppView.visualEvidenceHtml(evidence({
+    state: 'failed', repairAvailable: false, repairCount: 1,
+    failureCode: 'evidence_run_interrupted',
+  }), { sessionId: 42, canManage: false });
+  assert.doesNotMatch(readerHtml, /Retry visual change preview/);
 
   const noStory = AppView.visualEvidenceHtml(evidence({
     state: 'failed', repairAvailable: false, claims: [],
@@ -125,15 +131,17 @@ test('the workshop summary uses protected focus URLs only after verification', (
 });
 
 test('a running preview offers Stop, and a stopped one reads stopped with Retry', () => {
-  const running = AppView.visualEvidenceHtml(evidence({ state: 'exploring', artifacts: [] }), { sessionId: 42 });
+  const running = AppView.visualEvidenceHtml(evidence({ state: 'exploring', artifacts: [] }), { sessionId: 42, canManage: true });
   assert.match(running, /data-evidence-stop="1"[^>]*onclick="AppView\.stopVisualEvidence\(42, this\)">Stop</);
+  const readerRunning = AppView.visualEvidenceHtml(evidence({ state: 'exploring', artifacts: [] }), { sessionId: 42, canManage: false });
+  assert.doesNotMatch(readerRunning, /data-evidence-stop=/);
   const notStarted = AppView.visualEvidenceHtml(evidence({ state: 'planned', artifacts: [] }), { sessionId: 42 });
   assert.doesNotMatch(notStarted, /data-evidence-stop/, 'nothing is running to stop');
 
   const stopped = AppView.visualEvidenceHtml(evidence({
     state: 'failed', artifacts: [], failureCode: 'evidence_stopped', repairAvailable: false,
     failureReason: 'Stopped before it finished.',
-  }), { sessionId: 42 });
+  }), { sessionId: 42, canManage: true });
   assert.match(stopped, /Visual change preview stopped/);
   assert.doesNotMatch(stopped, /bg-red-500\/10/, 'a stop is not a failure');
   assert.match(stopped, /Retry visual change preview/);

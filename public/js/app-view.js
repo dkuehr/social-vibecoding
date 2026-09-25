@@ -4497,7 +4497,9 @@ const AppView = {
     if (votes) votes.label = 'Review';
     body.build = AppView._buildDoorView(item);
     // The evidence claims and state, for "What changes for you".
-    body.evidence = AppView._evidenceView(item.visualEvidence);
+    body.evidence = AppView._evidenceView(item.visualEvidence, {
+      canManage: AppView._canManageEvidence(item),
+    });
     if (underway) {
       const checks = rows.find((r) => r.key === 'checks');
       if (item.check_state === 'failing' && checks) checks.text = [{ b: 'Failing.', tone: 'bad' }, ' Required checks need attention before this change can be proposed.'];
@@ -4799,7 +4801,9 @@ const AppView = {
       // In particular, pending/failed evidence must never be visually
       // replaced by an older route capture that happens to exist.
       const tilesHtml = item.visualEvidence
-        ? AppView.visualEvidenceHtml(item.visualEvidence, { sessionId: item.id })
+        ? AppView.visualEvidenceHtml(item.visualEvidence, {
+          sessionId: item.id, canManage: AppView._canManageEvidence(item),
+        })
         : AppView.visualsTilesHtml(item.visuals);
       // Open: the tiles are the About sheet's before/after row now, not a
       // toggle behind a button.
@@ -17879,6 +17883,15 @@ const AppView = {
       || AppView._evidenceNotStarted(e);
   },
 
+  // The rerun and stop routes accept only the proposal author or an app
+  // manager. Keep both proposal surfaces aligned with that server gate.
+  _canManageEvidence(item) {
+    return !AppView.readOnly && !!App.user && (
+      Number(item?.user_id) === Number(App.user.id)
+      || AppView.appData?.can_manage === true
+    );
+  },
+
   // The words for each evidence state — a label and a sentence — shared by
   // the verified/pending card below and the change page's strip.
   _evidenceStateCopy(evidence) {
@@ -17906,7 +17919,7 @@ const AppView = {
   // plainest statement of the change there is, as bullets, and the run's
   // state as one strip. A VERIFIED run keeps the before/after card
   // (visualEvidenceHtml), which already leads with the claims.
-  _evidenceView(evidence) {
+  _evidenceView(evidence, opts = {}) {
     if (!evidence || typeof evidence !== 'object') return null;
     const state = String(evidence.state || 'planned');
     const copy = AppView._evidenceStateCopy(evidence)[state] || ['Preview pending', 'The visual change preview has not finished yet.'];
@@ -17922,7 +17935,7 @@ const AppView = {
       state,
       verified: state === 'verified',
       notStarted,
-      retryable: AppView._evidenceRetryable(evidence),
+      retryable: opts.canManage === true && AppView._evidenceRetryable(evidence),
       label: state === 'verified' ? 'Captured' : copy[0],
       sentence: notStarted
         ? `Visual change preview: ${detail.charAt(0).toLowerCase()}${detail.slice(1)}. Nothing has been captured for this commit yet.`
@@ -17967,11 +17980,12 @@ const AppView = {
       // repair already (or stopped during deployment), while the owner can
       // still choose to rerun it. Do not offer a blind rerun when there is no
       // declared story for the planner to replay.
-      const retryable = AppView._evidenceRetryable(evidence);
+      const retryable = opts.canManage === true && AppView._evidenceRetryable(evidence);
       const retry = retryable && Number.isInteger(sessionId) && sessionId > 0
         ? `<button type="button" class="text-xs font-medium text-violet-700 dark:text-violet-400" onclick="AppView.rerunVisualEvidence(${sessionId}, this)">Retry visual change preview</button>`
         : '';
-      const stoppable = ['provisioning', 'exploring', 'replaying', 'reviewing'].includes(state)
+      const stoppable = opts.canManage === true
+        && ['provisioning', 'exploring', 'replaying', 'reviewing'].includes(state)
         && Number.isInteger(sessionId) && sessionId > 0;
       const stop = stoppable
         ? `<button type="button" data-evidence-stop="1" class="text-xs font-medium text-violet-700 dark:text-violet-400" onclick="AppView.stopVisualEvidence(${sessionId}, this)">Stop</button>`
